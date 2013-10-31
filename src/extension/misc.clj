@@ -1,4 +1,4 @@
-(ns extensions.misc)
+(ns extension.misc)
 
 (defn ping! [ref]
   "Idempotent transformation on a reference, intended for watchers"
@@ -19,3 +19,6 @@
          elapsed-time# (/ (double (- (. System (nanoTime)) start#)) 1000000.0)]
      (prn (str "Elapsed time: " (pprn-msec elapsed-time#)))
      ret#))
+
+(defn keep-nonempty [m]
+  (into {} (filter (fn [[_ v]] (not (nil? v))) m)))

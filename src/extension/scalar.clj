@@ -1,4 +1,4 @@
-(ns extensions.scalar
+(ns extension.scalar
   (:refer-clojure :exclude (+ * -)))
 
 (defn dispatch [x xs]

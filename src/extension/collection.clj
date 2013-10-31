@@ -1,4 +1,4 @@
-(ns extensions.collections
+(ns extension.collection
   "Functions specific to collections"
   (:require (clojure (set :refer (union)))))
 

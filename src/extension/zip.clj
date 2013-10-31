@@ -1,4 +1,4 @@
-(ns extensions.zip
+(ns extension.zip
   (:refer-clojure :exclude (last next find filter keep map))
   (:require (clojure (zip :refer (up down left right next prev node end? edit
                                      leftmost rights lefts root)))))

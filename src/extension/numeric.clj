@@ -1,4 +1,4 @@
-(ns extensions.numeric)
+(ns extension.numeric)
 
 (defn chain? [xs n]
   "A chain is a sequence of consecutive integers, returns true if

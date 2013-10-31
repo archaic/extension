@@ -1,4 +1,4 @@
-(ns extensions.map
+(ns extension.map
   (:require (clojure (set :refer (index)))
             (midje (sweet :refer (facts)))))
 
