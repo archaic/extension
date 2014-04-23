@@ -9,6 +9,7 @@
       (println (format "Starting to cache %d tx-data." n)))
     (doseq [tx-data tx-partition-data]
       @(d/transact conn tx-data)
+      (Thread/sleep 100)
       (swap! ref-count (fn [x] (+ x (count tx-data))))
       (when verbose?
         (println (format "%d/%d completed." @ref-count n))))))
