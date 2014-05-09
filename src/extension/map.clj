@@ -1,6 +1,4 @@
-(ns extension.map
-  (:require (clojure (set :refer (index)))
-            (midje (sweet :refer (facts)))))
+(ns extension.map)
 
 (defn remove-keys [pred m]
   (into {} (for [k (keys m) :when (not (pred k))] [k (m k)])))
@@ -24,7 +22,3 @@
   (into {} (map (fn [[name ks]]
                   [name (vals (select-keys m ks))])
                 names-to-keys)))
-
-(facts
- "about bucket"
- (bucket {:a 3 :b 2 :c 6} {"A" #{:a} "B-C" #{:b :c}}) => {"A" [3] "B-C" [2 6]})
