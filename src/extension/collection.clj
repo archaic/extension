@@ -1,7 +1,7 @@
 (ns extension.collection
-  "Functions specific to collections"
-  (:require (clojure (set :refer (union)))))
+  "Functions specific to collections")
 
-(defn difference [xs n]
+(defn difference
   "nth order differencing on a collection of numbers"
+  [xs n]
   (map #(- %2 %) xs (drop n xs)))

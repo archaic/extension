@@ -1,19 +1,27 @@
 (ns extension.misc)
 
-(defn ping! [ref]
+(defn ping!
   "Idempotent transformation on a reference, intended for watchers"
+  [ref]
   (let [class (class ref)]
-    (cond (= class clojure.lang.Atom) (swap! ref identity)
-          (= class clojure.lang.Ref) (dosync (alter ref identity)))))
+    (cond (= class clojure.lang.Atom)
+          (swap! ref identity)
+          (= class clojure.lang.Ref)
+          (dosync (alter ref identity)))))
 
-(defn pprn-msec [msec]
+(defn pprn-msec
   "Aesthetically pleasing msec printout in minutes, seconds, millis."
-  (cond (< msec 1000) (format "%6.6f msecs" (float msec))
-        (< msec (* 60 1000)) (format "%6.6f seconds" (float (/ msec 1000)))
-        (< msec (* 60 60 1000)) (format "%6.6f minutes" (float (/ (/ msec 1000) 60)))))
+  [msec]
+  (cond (< msec 1000)
+        (format "%6.6f msecs" (float msec))
+        (< msec (* 60 1000))
+        (format "%6.6f seconds" (float (/ msec 1000)))
+        (< msec (* 60 60 1000))
+        (format "%6.6f minutes" (float (/ (/ msec 1000) 60)))))
 
-(defmacro timer [expr]
+(defmacro timer
   "Evaluates expr and prints the time it took. Returns the value of expr."
+  [expr]
   `(let [start# (System/nanoTime)
          ret# ~expr
          elapsed-time# (/ (double (- (. System (nanoTime)) start#)) 1000000.0)]

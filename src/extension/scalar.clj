@@ -55,8 +55,6 @@
 (defmethod - nil [x xs]
   nil)
 
-
-
 (defmulti div dispatch)
 
 (defmethod div clojure.lang.PersistentVector [x xs]

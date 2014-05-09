@@ -1,7 +1,8 @@
 (ns extension.datomic
   (:require [datomic.api :as d :refer [db q]]))
 
-(defn bulk-transact! [{:keys [conn tx-data verbose?]}]
+(defn bulk-transact!
+  [{:keys [conn tx-data verbose?]}]
   (let [tx-partition-data (partition-all 1000 tx-data)
         n (count tx-data)
         ref-count (atom 0)]
