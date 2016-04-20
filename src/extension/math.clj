@@ -36,3 +36,7 @@
   "Rounds amount down to the nearest 10 cents"
   [x]
   (/ (Math/floor (* 10 x)) 10))
+
+(defn roughly?
+  [x y tol]
+  (< (Math/abs (- x y)) tol))
