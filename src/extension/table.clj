@@ -10,7 +10,7 @@
            (map (fn [k]
                   (apply max
                          (+ 1 (count (str k)))
-                         (map #(count (str (get % k)))
+                         (map #(+ 3 (count (str (get % k))))
                               rows)))
                 ks)
            
