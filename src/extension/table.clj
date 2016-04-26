@@ -9,7 +9,7 @@
      (let [widths
            (map (fn [k]
                   (apply max
-                         (+ 1 (count (str k)))
+                         (+ 2 (count (str k)))
                          (map #(+ 3 (count (str (get % k))))
                               rows)))
                 ks)
