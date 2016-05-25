@@ -11,6 +11,6 @@
   [m & kvs]
   (->> kvs
        (partition 2)
-       (filter second)
+       (remove (comp nil? second))
        (map vec)
        (into m)))
