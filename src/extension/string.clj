@@ -8,6 +8,12 @@
     (when-let [s (re-find #"\d*\.\d+|\d+" s)]
       (Float/parseFloat s))))
 
+(defn ->d
+  [s]
+  (when (string? s)
+    (when-let [s (re-find #"\d*\.\d+|\d+" s)]
+      (Double/parseDouble s))))
+
 (defn ->i
   [s]
   (when (string? s)
