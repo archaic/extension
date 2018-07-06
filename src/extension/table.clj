@@ -22,13 +22,22 @@
            (fn [row]
              (s/join " "
                      (map (fn [k fmt]
-                            (ansi/sgr (format fmt
-                                              (str " "
-                                                   (s/capitalize (name (get row k)))
-                                                   " "))
-                                      :bg-blue
-                                      :white
-                                      :bold))
+
+                            (let [data
+                                  (get row k)
+
+                                  data
+                                  (if (keyword? data)
+                                    (name data)
+                                    data)]
+
+                              (ansi/sgr (format fmt
+                                                (str " "
+                                                     (s/capitalize data)
+                                                     " "))
+                                        :bg-blue
+                                        :white
+                                        :bold)))
                           ks
                           fmts)))
            

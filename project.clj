@@ -1,7 +1,7 @@
 (defproject com.eoneq/extension "0.3.13"
 
   :dependencies [[org.clojure/clojure "1.9.0"]
-                 [instaparse "1.4.8"]]
+                 [instaparse "1.4.9"]]
   
   :description "Extensions to Clojure"
 

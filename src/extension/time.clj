@@ -4,8 +4,11 @@
             [instaparse.core :as ic]))
 
 (def syntax
-  (str "parser = day <ws?> <separator?> <ws?> month <ws?> <separator?> <ws?> year;"
+  (str "parser = (date0 | date1);"
 
+       "<date0> = day <ws?> <separator> <ws?> month <ws?> <separator> <ws?> year;"
+       "<date1> = month <ws?> <separator> <ws?> day <ws?> <separator> <ws?> year;"
+       
        "day = "
        "'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10'|'11'|'12'|'13'|'14'|'15'|'16'"
        "|'17'|'18'|'19'|'20'|'21'|'22'|'23'|'24'|'25'|'26'|'27'|'28'|'29'|'30'|'31'"
@@ -20,7 +23,7 @@
        "year = ('20')?('01'|'02'|'03'|'04'|'05'|'06'|'07'|'08'|'09'|'10'|'11'|'12'"
        "|'13'|'14'|'15'|'16'|'17'|'18'|'19'|'20'|'21'|'22'|'23'|'24'|'25'|'26'|'27');"
 
-       "separator = '/' | '-' | ws;"
+       "separator = '/' | '-' | ',' | ws;"
 
        "ws = #'\\s+';"))
 
@@ -43,7 +46,7 @@
         "nov" 11
         "dec" 12)))
 
-(defonce parser
+(def parser
   (ic/parser syntax
              :string-ci true))
 
@@ -57,11 +60,25 @@
           (parser s)]
 
       (when-not (ic/failure? data)
-        (let [[day-node
-               month-node
-               year-node]
-              (rest data)
 
+        (let [month-node
+              (some (fn [[k v :as node]]
+                      (when (= :month k)
+                        node))
+                    (rest data))
+
+              day-node
+              (some (fn [[k v :as node]]
+                      (when (= :day k)
+                        node))
+                    (rest data))
+
+              year-node
+              (some (fn [[k v :as node]]
+                      (when (= :year k)
+                        node))
+                    (rest data))
+              
               day
               (-> day-node
                   last
