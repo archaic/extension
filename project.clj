@@ -1,10 +1,11 @@
-(defproject com.eoneq/extension "0.3.13"
+(defproject com.eoneq/extension "0.3.14"
 
-  :dependencies [[org.clojure/clojure "1.9.0"]
-                 [instaparse "1.4.9"]]
-  
   :description "Extensions to Clojure"
 
   :global-vars {*warn-on-reflection* true}
 
-  :injections [(require 'clojure.pprint)])
+  :lein-tools-deps/config {:config-files [:install :user :project]}
+
+  :middleware [lein-tools-deps.plugin/resolve-dependencies-with-deps-edn]
+
+  :plugins [[lein-tools-deps "0.4.1"]])
