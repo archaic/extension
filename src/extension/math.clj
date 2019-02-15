@@ -15,6 +15,7 @@
   
   ([xs mean]
    (let [n (count xs)]
+
      (if (pos? n)
        
        (Math/sqrt (/ (reduce +
@@ -75,3 +76,18 @@
             top-val (nth sorted halfway)]
         (mean [bottom-val top-val]))))) 
 
+(defn modes
+  "return set of elements with highest mode"
+  [xs]
+
+  (let [data
+        (frequencies xs)
+
+        mode-value
+        (apply max
+               (vals data))]
+
+    (set (keep (fn [[k v]]
+                 (when (= v mode-value)
+                   k))
+               data))))
