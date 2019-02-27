@@ -102,3 +102,9 @@
            :month month
            :year year})))))
 
+(defn parse-date-string+
+  [s]
+  (when (string? s)
+    (or (parse-date-string s)
+        (some parse-date-string
+              (s/split s #"\s+")))))

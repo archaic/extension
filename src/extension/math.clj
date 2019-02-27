@@ -66,15 +66,16 @@
 
 (defn median
   [coll]
-  (let [sorted (sort coll)
-        cnt (count sorted)
-        halfway (quot cnt 2)]
-    (if (odd? cnt)
-      (nth sorted halfway)
-      (let [bottom (dec halfway)
-            bottom-val (nth sorted bottom)
-            top-val (nth sorted halfway)]
-        (mean [bottom-val top-val]))))) 
+  (when (seq coll)
+    (let [sorted (sort coll)
+          cnt (count sorted)
+          halfway (quot cnt 2)]
+      (if (odd? cnt)
+        (nth sorted halfway)
+        (let [bottom (dec halfway)
+              bottom-val (nth sorted bottom)
+              top-val (nth sorted halfway)]
+          (mean [bottom-val top-val])))))) 
 
 (defn modes
   "return set of elements with highest mode"
