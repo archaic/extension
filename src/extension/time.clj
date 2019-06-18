@@ -4,10 +4,11 @@
             [instaparse.core :as ic]))
 
 (def syntax
-  (str "parser = (date0 | date1);"
+  (str ;; "parser = (date0 | date1);"
+       "parser = (date0);"
 
        "<date0> = day <ws?> <separator> <ws?> month <ws?> <separator> <ws?> year;"
-       "<date1> = month <ws?> <separator> <ws?> day <ws?> <separator> <ws?> year;"
+       ;; "<date1> = month <ws?> <separator> <ws?> day <ws?> <separator> <ws?> year;"
        
        "day = "
        "'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'|'10'|'11'|'12'|'13'|'14'|'15'|'16'"

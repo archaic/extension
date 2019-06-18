@@ -1,4 +1,4 @@
-(defproject com.eoneq/extension "0.3.15"
+(defproject com.eoneq/extension "0.3.16"
 
   :description "Extensions to Clojure"
 
