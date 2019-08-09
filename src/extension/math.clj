@@ -15,6 +15,7 @@
   
   ([xs mean]
    (let [n (count xs)]
+
      (if (pos? n)
        
        (Math/sqrt (/ (reduce +
@@ -65,13 +66,29 @@
 
 (defn median
   [coll]
-  (let [sorted (sort coll)
-        cnt (count sorted)
-        halfway (quot cnt 2)]
-    (if (odd? cnt)
-      (nth sorted halfway)
-      (let [bottom (dec halfway)
-            bottom-val (nth sorted bottom)
-            top-val (nth sorted halfway)]
-        (mean [bottom-val top-val]))))) 
+  (when (seq coll)
+    (let [sorted (sort coll)
+          cnt (count sorted)
+          halfway (quot cnt 2)]
+      (if (odd? cnt)
+        (nth sorted halfway)
+        (let [bottom (dec halfway)
+              bottom-val (nth sorted bottom)
+              top-val (nth sorted halfway)]
+          (mean [bottom-val top-val])))))) 
 
+(defn modes
+  "return set of elements with highest mode"
+  [xs]
+
+  (let [data
+        (frequencies xs)
+
+        mode-value
+        (apply max
+               (vals data))]
+
+    (set (keep (fn [[k v]]
+                 (when (= v mode-value)
+                   k))
+               data))))

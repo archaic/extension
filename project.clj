@@ -1,4 +1,4 @@
-(defproject com.eoneq/extension "0.3.14"
+(defproject com.eoneq/extension "0.3.16"
 
   :description "Extensions to Clojure"
 
@@ -8,4 +8,4 @@
 
   :middleware [lein-tools-deps.plugin/resolve-dependencies-with-deps-edn]
 
-  :plugins [[lein-tools-deps "0.4.1"]])
+  :plugins [[lein-tools-deps "0.4.3"]])
