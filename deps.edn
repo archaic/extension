@@ -1,4 +1,9 @@
-{:deps {org.clojure/clojure {:mvn/version "1.9.0"}
+{:aliases
+ {:eastwood
+  {:main-opts ["-m" "eastwood.lint" "{:source-paths,[\"src\"]}"]
+   :extra-deps {jonase/eastwood {:mvn/version "0.3.3"}}}}
+
+ :deps {org.clojure/clojure {:mvn/version "1.9.0"}
         instaparse {:mvn/version "1.4.9"}}
 
  :paths ["resources" "src"]}
