@@ -6,8 +6,10 @@
 /out
 /lib
 /target
+.cpcache/
 *.class
 *.jar
+.eastwood
 .lein-deps-sum
 .lein-failures
 .lein-plugins

@@ -26,6 +26,18 @@
                      n))
        0.0))))
 
+(defn statistics
+  [xs ]
+
+  (let [n
+        (count xs)]
+
+    (when (< 0 n)
+
+      {:mean
+       :variance
+       :n n})))
+
 (defn ceil-50
   "Rounds amount down to the nearest 50 cents"
   [x]
