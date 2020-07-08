@@ -1,5 +1,6 @@
 (ns extension.network
   (:require [clj-http.client :as cc]
+            [hickory.core :as hc]
             [net.cgrand.enlive-html :as nce]
             [taoensso.timbre :as log])
   (:import [java.io ByteArrayInputStream]))
@@ -10,7 +11,8 @@
 
   (let [{:as response
          :keys [body
-                status]}
+                status
+                trace-redirects]}
         (try (cc/get url
                      {:as :byte-array
                       :connection-timeout 60000
@@ -22,10 +24,46 @@
                            url
                            (.getMessage Ex))))]
 
+    (when (seq trace-redirects)
+      (log/warnf "redirect sequence from %s"
+                 url)
+      (log/warn trace-redirects))
+    
     (if (and status
              (<= 200 status 299))
 
       (ByteArrayInputStream. body)
+
+      (log/errorf "unable to pull %s, status: %s"
+                  url
+                  status))))
+
+(defn get-body
+  [url]
+
+  (let [{:as response
+         :keys [body
+                status
+                trace-redirects]}
+        (try (cc/get url
+                     {:connection-timeout 60000
+                      :socket-timeout 60000
+                      :throw-exceptions false})
+
+             (catch Exception Ex
+               (log/errorf "unable to GET %s, message: %s"
+                           url
+                           (.getMessage Ex))))]
+
+    (when (seq trace-redirects)
+      (log/warnf "redirect sequence from %s"
+                 url)
+      (log/warn trace-redirects))
+    
+    (if (and status
+             (<= 200 status 299))
+
+      body
 
       (log/errorf "unable to pull %s, status: %s"
                   url
@@ -47,6 +85,14 @@
       (.close bais)
 
       nodes)))
+
+(defn html-tree
+  [url]
+
+  (some-> url
+          get-body
+          hc/parse
+          hc/as-hickory))
 
 (defn xml
   [url]

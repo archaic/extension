@@ -113,9 +113,10 @@
           cnt (count sorted)
           halfway (quot cnt 2)
           q1 (median (take halfway sorted))
-          q2 (median (take-last halfway sorted))]
+          q3 (median (take-last halfway sorted))]
+
       {:q1 q1
-       :q2 q2})))
+       :q3 q3})))
 
 (defn skewness
   [xs]
@@ -182,3 +183,14 @@
           (* 0.25
              (Math/pow (- k 3)
                        2))))))
+
+(defn skew
+  [xs]
+  (let [m (mean xs)
+        med (median xs)
+        s (sd xs)]
+    (when (and m med s
+               (< 0 s))
+      (/ (- m med)
+         s))))
+
