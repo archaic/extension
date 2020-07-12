@@ -1,7 +1,11 @@
 (ns extension.network
   (:require [clj-http.client :as cc]
+            [clj-time.coerce :as co]
+            [clj-time.core :as t]
+            [extension.fs :as fs]
             [hickory.core :as hc]
             [net.cgrand.enlive-html :as nce]
+            [taoensso.nippy :as tn]
             [taoensso.timbre :as log])
   (:import [java.io ByteArrayInputStream]))
 
@@ -47,6 +51,7 @@
                 trace-redirects]}
         (try (cc/get url
                      {:connection-timeout 60000
+                      :headers {"User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
                       :socket-timeout 60000
                       :throw-exceptions false})
 
@@ -110,3 +115,47 @@
       (.close bais)
 
       nodes)))
+
+(defn cached-tree
+  [{:as input
+    :keys [directory
+           relative-file-name
+           url]}]
+
+  (let [absolute-file-name
+        (str directory
+             relative-file-name)]
+    
+    (if (or (fs/file? absolute-file-name)
+            (fs/symlink? absolute-file-name))
+
+      (tn/thaw-from-file absolute-file-name)
+
+      (when-let [tree
+                 (html-tree url)]
+
+        (let [timestamp
+              (co/to-long (t/now))
+
+              relative-file-name-0
+              (str timestamp
+                   "-"
+                   relative-file-name)
+
+              absolute-file-name-0
+              (str directory
+                   relative-file-name-0)]
+
+          (log/infof "pulling %s"
+                     absolute-file-name)
+
+          (when-not (fs/directory? directory)
+            (fs/mkdir directory))
+
+          (tn/freeze-to-file absolute-file-name-0
+                             tree)
+
+          (fs/symlink absolute-file-name
+                      absolute-file-name-0)
+
+          tree)))))
