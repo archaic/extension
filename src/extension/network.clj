@@ -1,5 +1,6 @@
 (ns extension.network
   (:require [clj-http.client :as cc]
+            [clj-http.conn-mgr :as ccm]
             [clj-time.coerce :as co]
             [clj-time.core :as t]
             [extension.fs :as fs]
@@ -43,36 +44,62 @@
                   status))))
 
 (defn get-body
-  [url]
+  ([url]
+   (get-body url
+             0))
 
-  (let [{:as response
-         :keys [body
-                status
-                trace-redirects]}
-        (try (cc/get url
-                     {:connection-timeout 60000
-                      :headers {"User-Agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
-                      :socket-timeout 60000
-                      :throw-exceptions false})
+  ([url n-attempts]
 
-             (catch Exception Ex
-               (log/errorf "unable to GET %s, message: %s"
+   (let [{:as response
+          :keys [body
+                 status
+                 trace-redirects]}
+         (try (cc/get url
+                      {:connection-timeout 60000
+                       :connection-manager (ccm/make-socks-proxied-conn-manager "localhost"
+                                                                                28435)
+                       :headers {"User-Agent"
+                                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
+                       :socket-timeout 60000
+                       :throw-exceptions false})
+
+              (catch Exception Ex
+                (log/errorf "unable to GET %s, message: %s"
+                            url
+                            (.getMessage Ex))))]
+
+     (when (seq trace-redirects)
+       (log/warnf "redirect sequence from %s"
+                  url)
+       (log/warn trace-redirects))
+     
+     (if status
+
+       (cond (<= 200 status 299)
+             body
+
+             (= 429 status)
+             (case n-attempts
+               0 (do (Thread/sleep (* 30 1000))
+                     (get-body url
+                               (inc n-attempts)))
+
+               1 (do (Thread/sleep (* 120 1000))
+                     (get-body url
+                               (inc n-attempts)))
+
+               2
+               (log/errorf "unable to pull %s status: %d"
                            url
-                           (.getMessage Ex))))]
+                           status))
 
-    (when (seq trace-redirects)
-      (log/warnf "redirect sequence from %s"
-                 url)
-      (log/warn trace-redirects))
-    
-    (if (and status
-             (<= 200 status 299))
+             :else
+             (log/errorf "unable to pull %s status: %d"
+                         url
+                         status))
 
-      body
-
-      (log/errorf "unable to pull %s, status: %s"
-                  url
-                  status))))
+       (log/errorf "unable to pull %s status: nil"
+                   url)))))
 
 (defn html
   [url]
@@ -115,6 +142,20 @@
       (.close bais)
 
       nodes)))
+
+(defn local-tree
+  [{:as input
+    :keys [directory
+           relative-file-name]}]
+
+  (let [absolute-file-name
+        (str directory
+             relative-file-name)]
+
+    (when (or (fs/file? absolute-file-name)
+              (fs/symlink? absolute-file-name))
+
+      (tn/thaw-from-file absolute-file-name))))
 
 (defn cached-tree
   [{:as input
