@@ -12,36 +12,64 @@
 
 (defn get-byte-array
   "Return body of url as a byte array, or nil if unable"
-  [url]
+  ([url]
+   (get-byte-array url
+                   0))
 
-  (let [{:as response
-         :keys [body
-                status
-                trace-redirects]}
-        (try (cc/get url
-                     {:as :byte-array
-                      :connection-timeout 60000
-                      :socket-timeout 60000
-                      :throw-exceptions false})
+  ([url n-attempts]
 
-             (catch Exception Ex
-               (log/errorf "unable to GET %s, message: %s"
+   (let [{:as response
+          :keys [body
+                 status
+                 trace-redirects]}
+         (try (cc/get url
+                      {:as :byte-array
+                       :connection-manager (ccm/make-socks-proxied-conn-manager "localhost"
+                                                                                28435)
+
+                       :connection-timeout 60000
+                       :headers {"user-agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36'"}
+                       :socket-timeout 60000
+                       :throw-exceptions false})
+
+              (catch Exception Ex
+                (log/errorf "unable to GET %s, message: %s"
+                            url
+                            (.getMessage Ex))))]
+
+     (when (seq trace-redirects)
+       (log/warnf "redirect sequence from %s"
+                  url)
+       (log/warn trace-redirects))
+
+     (if status
+
+       (cond (<= 200 status 299)
+             (ByteArrayInputStream. body)
+
+             (= 429 status)
+             (case n-attempts
+               0 (do (Thread/sleep (* 30 1000))
+                     (get-byte-array url
+                                     (inc n-attempts)))
+
+               1 (do (Thread/sleep (* 120 1000))
+                     (get-byte-array url
+                                     (inc n-attempts)))
+
+               2
+               (log/errorf "unable to pull %s status: %d"
                            url
-                           (.getMessage Ex))))]
+                           status))
 
-    (when (seq trace-redirects)
-      (log/warnf "redirect sequence from %s"
-                 url)
-      (log/warn trace-redirects))
-    
-    (if (and status
-             (<= 200 status 299))
+             :else
+             (log/errorf "unable to pull %s status: %d"
+                         url
+                         status))
+       
 
-      (ByteArrayInputStream. body)
-
-      (log/errorf "unable to pull %s, status: %s"
-                  url
-                  status))))
+       (log/errorf "unable to pull %s status: nil"
+                   url)))))
 
 (defn get-body
   ([url]
@@ -145,12 +173,14 @@
 
 (defn local-tree
   [{:as input
-    :keys [directory
+    :keys [absolute-file-name
+           directory
            relative-file-name]}]
 
   (let [absolute-file-name
-        (str directory
-             relative-file-name)]
+        (or absolute-file-name
+            (str directory
+                 relative-file-name))]
 
     (when (or (fs/file? absolute-file-name)
               (fs/symlink? absolute-file-name))
@@ -161,7 +191,10 @@
   [{:as input
     :keys [directory
            relative-file-name
-           url]}]
+           url
+           valid?]
+    :or {valid? (fn [tree]
+                  true)}}]
 
   (let [absolute-file-name
         (str directory
@@ -175,28 +208,30 @@
       (when-let [tree
                  (html-tree url)]
 
-        (let [timestamp
-              (co/to-long (t/now))
+        (when (valid? tree)
+          
+          (let [timestamp
+                (co/to-long (t/now))
 
-              relative-file-name-0
-              (str timestamp
-                   "-"
-                   relative-file-name)
+                relative-file-name-0
+                (str timestamp
+                     "-"
+                     relative-file-name)
 
-              absolute-file-name-0
-              (str directory
-                   relative-file-name-0)]
+                absolute-file-name-0
+                (str directory
+                     relative-file-name-0)]
 
-          (log/infof "pulling %s"
-                     absolute-file-name)
+            (log/infof "pulling %s"
+                       absolute-file-name)
 
-          (when-not (fs/directory? directory)
-            (fs/mkdir directory))
+            (when-not (fs/directory? directory)
+              (fs/mkdir directory))
 
-          (tn/freeze-to-file absolute-file-name-0
-                             tree)
+            (tn/freeze-to-file absolute-file-name-0
+                               tree)
 
-          (fs/symlink absolute-file-name
-                      absolute-file-name-0)
+            (fs/symlink absolute-file-name
+                        absolute-file-name-0)
 
-          tree)))))
+            tree))))))

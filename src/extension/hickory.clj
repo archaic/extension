@@ -18,14 +18,19 @@
       (first xs))))
 
 (defn select-one
-  [selector-fn tree]
+  ([selector-fn tree log?]
+   (or (maybe-select-one selector-fn
+                         tree)
 
-  (or (maybe-select-one selector-fn
-                        tree)
+       (when log?
+         (log/warnf "singular selection not found for fn: %s, tree: %s"
+                    (str selector-fn)
+                    (with-out-str (pp/pprint tree))))))
 
-      (log/warnf "singular selection not found for fn: %s, tree: %s"
-                 (str selector-fn)
-                 (with-out-str (pp/pprint tree)))))
+  ([selector-fn tree]
+   (select-one selector-fn
+               tree
+               true)))
 
 (defn text-selector
   [loc]
