@@ -1,6 +1,7 @@
 (ns extension.fs
   (:require [clojure.java.io :as io]
-            [clojure.zip :as zip])
+            [clojure.zip :as zip]
+            [clojure.string :as s])
   (:import [java.io FileInputStream]
            [java.net URL URI]
            [java.nio.file Files LinkOption Path Paths CopyOption]
@@ -37,15 +38,19 @@
 
 (defn children
   [path]
-  (iterator-seq (.iterator (Files/newDirectoryStream path))))
+  (iterator-seq (.iterator (Files/newDirectoryStream (->path path)))))
 
 (defn path-zip
   [root]
-  (zip/zipper directory? children nil root))
+  (zip/zipper directory?
+              children
+              nil
+              root))
 
 (defn directories
   [path]
-  (filter directory? (children path)))
+  (filter directory?
+          (children path)))
 
 (defn mkdir
   [^Path path]
@@ -67,8 +72,10 @@
   "A sequence of paths within path which are regular files, path must
   be a path to a directory"
   [path]
-  (let [children (children path)]
-    (filter file? children)))
+  (let [children
+        (children path)]
+    (filter file?
+            children)))
 
 (defn rm
   [path]
@@ -76,9 +83,9 @@
     (Files/delete path)))
 
 (defn mv
-  [^Path from ^Path to]
-  (Files/move from
-              to
+  [from to]
+  (Files/move (->path from)
+              (->path to)
               #^"[Ljava.nio.file.CopyOption;" (into-array CopyOption [])))
 
 (defn create-tmp
@@ -115,3 +122,53 @@
 (defn to-bytes
   [path]
   (Files/readAllBytes (->path path)))
+
+(defn alter-extension!
+  [{:file.extension/keys [src dst]
+    :file.absolute/keys [path]}]
+
+  (mv path
+      (s/replace path
+                 (re-pattern (str src "$"))
+                 dst)))
+
+(defn file-iteration
+  "iterate over all files in a directory, calling f on path"
+  [{:directory.absolute/keys [path]
+    :keys [f]}]
+
+  (loop [loc 
+         (path-zip path)]
+    
+    (when-not (zip/end? loc)
+
+      (let [path
+            (zip/node loc)]
+        
+        (when (file? path)
+          (f path)))
+      
+      (recur (zip/next loc)))))
+
+(defn alter-extensions!
+  [{:as context
+    :file.extension/keys [src dst]
+    :directory.absolute/keys [path]}]
+
+  (file-iteration (assoc context
+                    :f (fn [path]
+                         (alter-extension! {:file.extension/src src
+                                            :file.extension/dst dst
+                                            :file.absolute/path path})))))
+
+(defn get-parent
+  [path]
+  (.getParent (->path path)))
+
+(defn get-file-name
+  [path]
+  (.getFileName (->path path)))
+
+#_(alter-extensions! {:file.extension/src "nippy"
+                      :file.extension/dst "ny"
+                      :directory.absolute/path "/mnt/hdd/betfair_greyhound_GB_data"})

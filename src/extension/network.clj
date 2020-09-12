@@ -84,8 +84,8 @@
                  trace-redirects]}
          (try (cc/get url
                       {:connection-timeout 60000
-                       #_:connection-manager #_(ccm/make-socks-proxied-conn-manager "localhost"
-                                                                                    28435)
+                       :connection-manager (ccm/make-socks-proxied-conn-manager "localhost"
+                                                                                28435)
                        :headers {"User-Agent"
                                  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
                        :socket-timeout 60000
