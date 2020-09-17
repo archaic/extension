@@ -10,6 +10,43 @@
             [taoensso.timbre :as log])
   (:import [java.io ByteArrayInputStream]))
 
+(defn post
+  [uri options]
+
+  (try (cc/post uri
+                options)
+
+       (catch Exception Ex
+
+         (let [message
+               (ex-message Ex)]
+           
+           (log/errorf "Unable to post uri: %s, message:\n%s"
+                       uri
+                       message)
+
+           (when-let [n-retries
+                      (get options
+                           :n-retries)]
+
+             (when (pos? n-retries)
+
+               (log/infof "retry %d for %s"
+                          n-retries
+                          uri)
+               
+               (case n-retries
+                 5 (Thread/sleep 1000)
+                 4 (Thread/sleep 5000)
+                 3 (Thread/sleep 10000)
+                 2 (Thread/sleep 30000)
+                 1 (Thread/sleep 90000)
+                 (Thread/sleep 1000))
+
+               (post uri
+                     (assoc options
+                       :n-retries (dec n-retries)))))))))
+
 (defn get-byte-array
   "Return body of url as a byte array, or nil if unable"
   ([url]
