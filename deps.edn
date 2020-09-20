@@ -1,11 +1,11 @@
-{:deps {clj-http {:mvn/version "3.10.2"}
-        clj-time {:mvn/version "0.15.2"}
+{:deps {clj-http/clj-http {:mvn/version "3.10.3"}
+        clj-time/clj-time {:mvn/version "0.15.2"}
         com.datomic/datomic-free {:mvn/version "0.9.5697"}
-        com.taoensso/nippy {:mvn/version "2.15.0"}
+        com.taoensso/nippy {:mvn/version "3.0.0"}
         com.taoensso/timbre {:mvn/version "4.10.0"}
-        enlive {:mvn/version "1.1.6"}
-        hickory {:mvn/version "0.7.1"}
-        instaparse {:mvn/version "1.4.10"}
+        enlive/enlive {:mvn/version "1.1.6"}
+        hickory/hickory {:mvn/version "0.7.1"}
+        instaparse/instaparse {:mvn/version "1.4.10"}
         org.clojure/clojure {:mvn/version "1.10.1"}}
 
  :paths ["src"]}
