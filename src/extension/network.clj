@@ -55,28 +55,52 @@
 
   ([url n-attempts]
 
-   (let [{:as response
+   (let [request
+         {:as :byte-array
+          :connection-manager
+          (ccm/make-socks-proxied-conn-manager "localhost"
+                                               28435)
+
+          :connection-timeout 90000
+
+          :headers
+          {"user-agent" (str "Mozilla/5.0 "
+                             "(X11; Linux x86_64) "
+                             "AppleWebKit/537.36 "
+                             "(KHTML, like Gecko) "
+                             "Chrome/83.0.4103.97 "
+                             "Safari/537.36'")}
+
+          :so-timeout 120000
+          :throw-exceptions false}
+         
+         {:as response
           :keys [body
                  status
                  trace-redirects]}
          (try (cc/get url
-                      {:as :byte-array
-                       :connection-manager
-                       (ccm/make-socks-proxied-conn-manager "localhost"
-                                                            28435)
-
-
-                       :connection-timeout 90000
-                       :headers
-                       {"user-agent" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36'"}
-
-                       :so-timeout 120000
-                       :throw-exceptions false})
+                      request)
 
               (catch Exception Ex
-                (log/errorf "unable to GET %s, message: %s"
-                            url
-                            (.getMessage Ex))))]
+
+                (let [message
+                      (ex-message Ex)]
+
+                  (if (re-find #"refused"
+                               message)
+
+                    (try (cc/get url
+                                 (dissoc request
+                                   :connection-manager))
+
+                         (catch Exception Ex
+                           (log/errorf "unable to GET %s, message: %s"
+                                       url
+                                       (ex-message Ex))))
+
+                    (log/errorf "unable to GET %s, message: %s"
+                                url
+                                message)))))]
 
      (when (seq trace-redirects)
        (log/warnf "redirect sequence from %s"
@@ -119,30 +143,59 @@
 
   ([url n-attempts]
 
-   (let [{:as response
+   (let [request
+         {:connection-timeout 60000
+
+          #_:connection-manager
+          #_(ccm/make-socks-proxied-conn-manager "localhost"
+                                                 28435)
+
+          :headers
+          {"user-agent" (str "Mozilla/5.0 "
+                             "(X11; Linux x86_64) "
+                             "AppleWebKit/537.36 "
+                             "(KHTML, like Gecko) "
+                             "Chrome/83.0.4103.97 "
+                             "Safari/537.36'")}
+
+          :so-timeout 120000
+
+          :throw-exceptions false}
+
+         {:as response
           :keys [body
                  status
                  trace-redirects]}
          (try (cc/get url
-                      {:connection-timeout 60000
-                       :connection-manager (ccm/make-socks-proxied-conn-manager "localhost"
-                                                                                28435)
-                       :headers {"User-Agent"
-                                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"}
-                       :so-timeout 120000
-                       :throw-exceptions false})
+                      request)
 
               (catch Exception Ex
-                (log/errorf "unable to GET %s, message: %s"
-                            url
-                            (.getMessage Ex))))]
+
+                (let [message
+                      (ex-message Ex)]
+                  
+                  (if (re-find #"refused"
+                               message)
+
+                    (try (cc/get url
+                                 (dissoc request
+                                   :connection-manager))
+
+                         (catch Exception Ex
+                           (log/errorf "unable to GET %s, message: %s"
+                                       url
+                                       (ex-message Ex))))
+                    
+                    (log/errorf "unable to GET %s, message: %s"
+                                url
+                                message)))))]
 
      (when (seq trace-redirects)
        (log/warnf "redirect sequence from %s"
                   url)
        (log/warn trace-redirects))
      
-     (if status
+     (when status
 
        (cond (<= 200 status 299)
              body
@@ -165,10 +218,7 @@
              :else
              (log/errorf "unable to pull %s status: %d"
                          url
-                         status))
-
-       (log/errorf "unable to pull %s status: nil"
-                   url)))))
+                         status))))))
 
 (defn html
   [url]
@@ -232,12 +282,17 @@
   [{:as input
     :keys [directory
            relative-file-name
+           file-name
            url
            valid?]
     :or {valid? (fn [tree]
                   true)}}]
 
-  (let [absolute-file-name
+  (let [relative-file-name
+        (or relative-file-name
+            file-name)
+
+        absolute-file-name
         (str directory
              relative-file-name)]
     

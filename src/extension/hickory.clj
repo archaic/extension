@@ -1,5 +1,6 @@
 (ns extension.hickory
   (:require [clojure.pprint :as pp]
+            [clojure.string :as s]
             [clojure.zip :as cz]
             [hickory.core :as hc]
             [hickory.select :as hs]
@@ -16,6 +17,11 @@
     (when (= 1 (count xs))
 
       (first xs))))
+
+(defn exists?
+  [selector-fn tree]
+  (maybe-select-one selector-fn
+                    tree))
 
 (defn select-one
   ([selector-fn tree log?]
@@ -35,6 +41,12 @@
 (defn text-selector
   [loc]
   (string? (cz/node loc)))
+
+(defn all-text
+  [node]
+  (s/join " "
+          (hs/select text-selector
+                     node)))
 
 (defn text
   [node]
