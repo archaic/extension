@@ -43,10 +43,14 @@
   (string? (cz/node loc)))
 
 (defn all-text
-  [node]
-  (s/join " "
-          (hs/select text-selector
-                     node)))
+  ([node]
+   (all-text node
+             " "))
+
+  ([node separator]
+   (s/trim (s/join separator
+                   (hs/select text-selector
+                             node)))))
 
 (defn text
   [node]

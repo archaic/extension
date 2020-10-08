@@ -172,3 +172,7 @@
 #_(alter-extensions! {:file.extension/src "nippy"
                       :file.extension/dst "ny"
                       :directory.absolute/path "/mnt/hdd/betfair_greyhound_GB_data"})
+
+#_(alter-extensions! {:file.extension/src "_0.ny"
+                      :file.extension/dst ".ny"
+                      :directory.absolute/path "/mnt/hdd/betfair_greyhound_GB_data/2020"})
