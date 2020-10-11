@@ -1,7 +1,10 @@
 (ns extension.fs
   (:require [clojure.java.io :as io]
+            [clojure.java.shell :as cjs]
+            [clojure.string :as s]
             [clojure.zip :as zip]
-            [clojure.string :as s])
+            [taoensso.timbre :as log])
+
   (:import [java.io FileInputStream]
            [java.net URL URI]
            [java.nio.file Files LinkOption Path Paths CopyOption]
@@ -161,6 +164,14 @@
                                             :file.extension/dst dst
                                             :file.absolute/path path})))))
 
+(comment (alter-extensions! {:file.extension/src "nippy"
+                             :file.extension/dst "ny"
+                             :directory.absolute/path "/mnt/hdd/betfair_greyhound_GB_data"}))
+
+(comment (alter-extensions! {:file.extension/src "_0.ny"
+                             :file.extension/dst ".ny"
+                             :directory.absolute/path "/mnt/hdd/betfair_greyhound_GB_data/2020"}))
+
 (defn get-parent
   [path]
   (.getParent (->path path)))
@@ -169,10 +180,20 @@
   [path]
   (.getFileName (->path path)))
 
-#_(alter-extensions! {:file.extension/src "nippy"
-                      :file.extension/dst "ny"
-                      :directory.absolute/path "/mnt/hdd/betfair_greyhound_GB_data"})
+(defn gzip?
+  [path]
 
-#_(alter-extensions! {:file.extension/src "_0.ny"
-                      :file.extension/dst ".ny"
-                      :directory.absolute/path "/mnt/hdd/betfair_greyhound_GB_data/2020"})
+  (let [{:as reponse
+         :keys [err exit out]}
+        (cjs/sh "file"
+                (str path))]
+
+    (when-not (s/blank? err)
+      (log/warnf "error processing %s, %s"
+                 (str path)
+                 err))
+
+    (boolean (when (zero? exit)
+               (when-not (s/blank? out)
+                 (re-find #"(?i)gzip"
+                          out))))))
