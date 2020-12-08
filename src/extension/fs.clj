@@ -75,10 +75,8 @@
   "A sequence of paths within path which are regular files, path must
   be a path to a directory"
   [path]
-  (let [children
-        (children path)]
-    (filter file?
-            children)))
+  (filter file?
+          (children (->path path))))
 
 (defn rm
   [path]
@@ -100,6 +98,11 @@
 (defn symlink?
   [path]
   (Files/isSymbolicLink (->path path)))
+
+(defn symlinks
+  [path]
+  (filter symlink?
+          (children (->path path))))
 
 (defn symlink
   [link target]
