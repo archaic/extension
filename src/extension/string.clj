@@ -14,6 +14,11 @@
     (when-let [s (re-find #"\d*\.\d+|\d+" s)]
       (Float/parseFloat s))))
 
+(defn ->f2
+  [s]
+  (try (Float/parseFloat s)
+       (catch Exception Ex)))
+
 (defn ->d
   [s]
   (when (string? s)
