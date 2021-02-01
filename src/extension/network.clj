@@ -1,8 +1,10 @@
 (ns extension.network
   (:require [clj-http.client :as cc]
             [clj-http.conn-mgr :as ccm]
+            [clojure.pprint :as pp]
             [clj-time.coerce :as co]
             [clj-time.core :as t]
+            [clojure.string :as s]
             [extension.fs :as fs]
             [hickory.core :as hc]
             [net.cgrand.enlive-html :as nce]
@@ -299,7 +301,10 @@
         absolute-file-name
         (str directory
              relative-file-name)]
-    
+
+    (when-not (fs/directory? directory)
+      (fs/mkdirs directory))
+
     (if (or (fs/file? absolute-file-name)
             (fs/symlink? absolute-file-name))
 
@@ -335,3 +340,62 @@
                         absolute-file-name-0)
 
             tree))))))
+
+(defn http-get
+  [{:as input
+    :keys [directory
+           file-name
+           options
+           url]}]
+
+  (let [absolute-file-name
+        (str directory
+             file-name)]
+
+    (when-not (fs/directory? directory)
+      (fs/mkdirs directory))
+
+    (if (or (fs/file? absolute-file-name)
+            (fs/symlink? absolute-file-name))
+
+      (tn/thaw-from-file absolute-file-name)
+
+      (let [timestamp
+            (co/to-long (t/now))
+
+            file-name-0
+            (str timestamp
+                 "-"
+                 file-name)
+
+            absolute-file-name-0
+            (str directory
+                 file-name-0)
+
+            {:as response
+             :keys [body
+                    status]}
+            (cc/get url
+                    (merge {:throw-exceptions false}
+                           options))]
+
+        (if (and status
+                 (<= 200 status 299)
+                 (not (s/blank? body)))
+          
+          (do (log/infof "pulling %s"
+                         absolute-file-name)
+
+              (tn/freeze-to-file absolute-file-name-0
+                                 body)
+
+              (fs/symlink absolute-file-name
+                          absolute-file-name-0)
+
+              body)
+
+          (log/warnf "unable to get %s, status: %s, options: %s, response: %s"
+                     url
+                     status
+                     options
+                     response))))))
