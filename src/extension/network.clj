@@ -132,9 +132,13 @@
                          url
                          status))
        
-
-       (log/errorf "unable to pull %s status: nil"
-                   url)))))
+       (case n-attempts
+         0 (do (Thread/sleep (* 10 1000))
+               (get-byte-array url
+                               (inc n-attempts)))
+         
+         (log/errorf "unable to pull %s status: nil"
+                     url))))))
 
 (defn get-body
   ([url]
