@@ -399,3 +399,84 @@
                      status
                      options
                      response))))))
+
+(defn get-user-agent
+  []
+  (str "Mozilla/5.0 "
+       "(X11; Linux x86_64) "
+       "AppleWebKit/537.36 "
+       "(KHTML, like Gecko) "
+       "Chrome/83.0.4103.97 "
+       "Safari/537.36'"))
+
+(defn get-byte-array-v2
+  "Return body of url as a byte array, or nil if unable"
+
+  [{:as input
+    :keys [n-attempts
+           url
+           warn-on-redirect?]
+    :or {n-attempts 0
+         warn-on-redirect? true}}]
+
+  (let [request
+        {:as :byte-array
+         :connection-timeout 90000
+         :headers {"user-agent" (get-user-agent)}
+         :so-timeout 120000
+         :throw-exceptions false}
+
+        {:as response
+         :keys [body
+                status
+                trace-redirects]}
+        (try (cc/get url
+                     request)
+
+             (catch Exception Ex
+
+               (let [message
+                     (ex-message Ex)]
+
+                 (log/errorf "unable to GET %s, message: %s"
+                             url
+                             message))))]
+
+    (when (and warn-on-redirect?
+               (seq trace-redirects))
+      (log/warnf "redirect sequence from %s"
+                 url)
+      (log/warn trace-redirects))
+
+    (if status
+
+      (cond (<= 200 status 299)
+            (ByteArrayInputStream. body)
+
+            (= 429 status)
+            (case n-attempts
+              0 (do (Thread/sleep (* 30 1000))
+                    (get-byte-array (assoc input
+                                      :n-attempts (inc n-attempts))))
+
+              1 (do (Thread/sleep (* 120 1000))
+                    (get-byte-array (assoc input
+                                      :n-attempts (inc n-attempts))))
+
+              2
+              (log/errorf "unable to pull %s status: %d"
+                          url
+                          status))
+
+            :else
+            (log/errorf "unable to pull %s status: %d"
+                        url
+                        status))
+      
+      (case n-attempts
+        0 (do (Thread/sleep (* 10 1000))
+              (get-byte-array (assoc input
+                                :n-attempts (inc n-attempts))))
+        
+        (log/errorf "unable to pull %s status: nil"
+                    url)))))
