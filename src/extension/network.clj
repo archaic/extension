@@ -1,4 +1,5 @@
 (ns extension.network
+  (:refer-clojure :exclude (get))
   (:require [clj-http.client :as cc]
             [clj-http.conn-mgr :as ccm]
             [clojure.pprint :as pp]
@@ -11,6 +12,27 @@
             [taoensso.nippy :as tn]
             [taoensso.timbre :as log])
   (:import [java.io ByteArrayInputStream]))
+
+(defn get
+  [{:keys [url]}]
+
+  (let [{:as response
+         :keys [trace-redirects]}
+        (try (cc/get url
+                     {:throw-exceptions false})
+
+             (catch Exception Ex
+               (log/errorf "unable to GET %s, %s"
+                           url
+                           (.getMessage Ex))))]
+
+    (when (seq trace-redirects)
+      (log/warnf "redirect sequence from %s, by %s"
+                 url
+                 (s/join ", "
+                         trace-redirects)))
+
+    response))
 
 (defn post
   [uri options]
@@ -28,8 +50,7 @@
                        message)
 
            (when-let [n-retries
-                      (get options
-                           :n-retries)]
+                      (:n-retries options)]
 
              (when (pos? n-retries)
 
