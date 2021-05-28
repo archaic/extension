@@ -69,8 +69,6 @@
           context
           parse-output))
 
-(def !x (atom nil))
-
 (defn create-parser
   [{:keys [string syntax]}]
 
