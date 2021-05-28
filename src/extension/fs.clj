@@ -9,6 +9,9 @@
            [java.nio.file Files LinkOption Path Paths CopyOption]
            [java.nio.file.attribute FileAttribute]))
 
+(set! *warn-on-reflection* true)
+(set! *unchecked-math* :warn-on-boxed)
+
 (extend Path
   java.io/IOFactory
   (assoc java.io/default-streams-impl
@@ -194,7 +197,7 @@
                  (str path)
                  err))
 
-    (boolean (when (zero? exit)
+    (boolean (when (zero? (int exit))
                (when-not (string/blank? out)
                  (re-find #"(?i)gzip"
                           out))))))

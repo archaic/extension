@@ -1,46 +1,46 @@
 (ns extension.math)
 
-(defn mean
+(defn mean ^double
   [xs]
   (let [n (count xs)]
     (if (pos? n)
-      (float (/ (reduce + xs)
-                n))
+      (/ ^double (reduce + xs)
+         n)
       0.0)))
 
 (defn sd
-  ([xs]
+  (^double [xs]
    (sd xs
        (mean xs)))
   
-  ([xs mean]
+  (^double [xs ^double mean]
    (let [n (count xs)]
 
      (if (pos? n)
        
-       (Math/sqrt (/ (reduce +
-                             (map (fn [x]
-                                    (Math/pow (- x mean)
-                                              2))
-                                  xs))
+       (Math/sqrt (/ ^double (reduce +
+                                     (map (fn [^double x]
+                                            (Math/pow (- x mean)
+                                                      2))
+                                          xs))
                      n))
        0.0))))
 
 (defn statistics
-  [xs ]
+  [xs]
 
   (let [n
         (count xs)]
 
-    (when (< 0 n)
+    (when (pos? n)
 
-      {:mean
-       :variance
+      {:mean (mean xs)
+       :variance (Math/pow (sd xs) 2)
        :n n})))
 
 (defn ceil-50
   "Rounds amount down to the nearest 50 cents"
-  [x]
+  [^double x]
   (let [characteristic
         (int x)
         
@@ -52,8 +52,7 @@
     (cond (< 0 mantissa eps)
           characteristic
           
-          (< 0 mantissa
-             (+ 0.5 eps))
+          (< 0 mantissa (+ 0.5 eps))
           (+ characteristic 0.5)
           
           :else (Math/ceil x))))
@@ -64,19 +63,20 @@
 
 (defn floor-10
   "Rounds amount down to the nearest 10 cents"
-  [x]
+  [^double x]
   (/ (Math/floor (* 10
                     x))
      10))
 
 (defn roughly?
-  [x y tol]
-  (let [^Double difference
+  [^double x ^double y ^double tol]
+  (let [difference
         (- x y)]
+
     (< (Math/abs difference)
        tol)))
 
-(defn median
+(defn median ^double
   [coll]
   (when (seq coll)
     (let [sorted (sort coll)
@@ -118,7 +118,7 @@
       {:q1 q1
        :q3 q3})))
 
-(defn skewness
+(defn skewness ^double 
   [xs]
 
   (let [m
@@ -131,7 +131,7 @@
         (count xs)
 
         numerator
-        (reduce + (map (fn [x]
+        (reduce + (map (fn [^double x]
                          (Math/pow (- x m)
                                    3))
                        xs))
@@ -140,31 +140,32 @@
         (* (- n 1)
            (Math/pow s 3))]
 
-    (/ numerator
+    (/ ^double numerator
        denominator)))
 
-(defn kurtosis
+(defn kurtosis ^double
   [xs]
 
   (let [m
         (mean xs)
 
         s
-        (sd xs)
+        (sd xs
+            mean)
 
         n
         (count xs)
         
         m4
-        (/ (reduce +
-                   (map (fn [x]
-                          (Math/pow (- x m) 4))
-                        xs))
+        (/ ^double (reduce +
+                           (map (fn [^double x]
+                                  (Math/pow (- x m) 4))
+                                xs))
            n)]
-    (when (< 0 s)
+
+    (when (pos? s)
       (/ m4
          (Math/pow s 4)))))
-
 
 (defn jarque-bera
   [xs]
@@ -178,7 +179,7 @@
         k
         (kurtosis xs)]
 
-    (* (/ n 6)
+    (* (/ n 6.0)
        (+ (Math/pow s 2)
           (* 0.25
              (Math/pow (- k 3)
@@ -189,8 +190,11 @@
   (let [m (mean xs)
         med (median xs)
         s (sd xs)]
-    (when (and m med s
-               (< 0 s))
+
+    (when (and m
+               med
+               s
+               (pos? s))
+
       (/ (- m med)
          s))))
-

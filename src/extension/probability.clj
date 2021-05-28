@@ -3,7 +3,7 @@
 (defn om?
   [om]
   (and (seq om)
-       (every? (fn [[selection odd]]
+       (every? (fn [[selection ^double odd]]
                  (and (number? odd)
                       (<= 1 odd)))
                om)))
@@ -29,15 +29,15 @@
 (defn bm?
   [om]
   (and (seq om)
-       (every? (fn [[selection bet-amount]]
+       (every? (fn [[selection ^double bet-amount]]
                  (and (number? bet-amount)
                       (<= 0 bet-amount)))
                om)))
 
 (defn pm->om
-  [pm take]
+  [pm ^double take]
   (into {}
-        (map (fn [[k prob]]
+        (map (fn [[k ^double prob]]
                [k (float (/ (* prob take)))])
              pm)))
 
@@ -50,9 +50,11 @@
 
 (defn om->pm
   ([om]
-   (om->pm om (get-take om)))
-  ([om take]
+   (om->pm om
+           (get-take om)))
+
+  ([om ^double take]
    (into {}
-         (map (fn [[k odd]]
+         (map (fn [[k ^double odd]]
                 [k (float (/ (* odd take)))])
               om))))

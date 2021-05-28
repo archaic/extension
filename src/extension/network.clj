@@ -50,26 +50,29 @@
                        uri
                        message)
 
-           (when-let [n-retries
+           (when-let [n-retries-0
                       (:n-retries options)]
 
-             (when (pos? n-retries)
-
-               (log/infof "retry %d for %s"
-                          n-retries
-                          uri)
+             (let [n-retries
+                   (int n-retries-0)]
                
-               (case (int n-retries)
-                 5 (Thread/sleep 1000)
-                 4 (Thread/sleep 5000)
-                 3 (Thread/sleep 10000)
-                 2 (Thread/sleep 30000)
-                 1 (Thread/sleep 90000)
-                 (Thread/sleep 1000))
+               (when (pos? n-retries)
 
-               (post uri
-                     (assoc options
-                       :n-retries (dec n-retries)))))))))
+                 (log/infof "retry %d for %s"
+                            n-retries
+                            uri)
+                 
+                 (case n-retries
+                   5 (Thread/sleep 1000)
+                   4 (Thread/sleep 5000)
+                   3 (Thread/sleep 10000)
+                   2 (Thread/sleep 30000)
+                   1 (Thread/sleep 90000)
+                   (Thread/sleep 1000))
+
+                 (post uri
+                       (assoc options
+                         :n-retries (dec n-retries))))))))))
 
 (defn get-byte-array
   "Return body of url as a byte array, or nil if unable"
@@ -77,7 +80,7 @@
    (get-byte-array url
                    0))
 
-  ([url n-attempts]
+  ([url ^long n-attempts]
 
    (let [request
          {:as :byte-array
@@ -137,7 +140,7 @@
              (ByteArrayInputStream. body)
 
              (= 429 status)
-             (case (int n-attempts)
+             (case n-attempts
                0 (do (Thread/sleep (* 30 1000))
                      (get-byte-array url
                                      (inc n-attempts)))
@@ -156,7 +159,7 @@
                          url
                          status))
        
-       (case (int n-attempts)
+       (case n-attempts
          0 (do (Thread/sleep (* 10 1000))
                (get-byte-array url
                                (inc n-attempts)))
@@ -169,7 +172,7 @@
    (get-body url
              0))
 
-  ([url n-attempts]
+  ([url ^long n-attempts]
 
    (let [request
          {:connection-timeout 60000
@@ -229,7 +232,7 @@
              body
 
              (= 429 status)
-             (case (int n-attempts)
+             (case n-attempts
                0 (do (Thread/sleep (* 30 1000))
                      (get-body url
                                (inc n-attempts)))
@@ -447,7 +450,10 @@
     :or {n-attempts 0
          warn-on-redirect? true}}]
 
-  (let [request
+  (let [n-attempts
+        (int n-attempts)
+
+        request
         {:as :byte-array
          :connection-timeout 90000
          :headers {"user-agent" (get-user-agent)}
@@ -482,7 +488,7 @@
             (ByteArrayInputStream. body)
 
             (= 429 status)
-            (case (int n-attempts)
+            (case n-attempts
               0 (do (Thread/sleep (* 30 1000))
                     (get-byte-array (assoc input
                                       :n-attempts (inc n-attempts))))
@@ -501,7 +507,7 @@
                         url
                         status))
       
-      (case (int n-attempts)
+      (case n-attempts
         0 (do (Thread/sleep (* 10 1000))
               (get-byte-array (assoc input
                                 :n-attempts (inc n-attempts))))
@@ -521,7 +527,10 @@
     :or {n-attempts 0
          warn-on-redirect? true}}]
 
-  (let [absolute-file-name
+  (let [n-attempts
+        (int n-attempts)
+
+        absolute-file-name
         (str directory
              file-name)]
 
@@ -593,7 +602,7 @@
                     bais))
 
                 (= 429 status)
-                (case (int n-attempts)
+                (case n-attempts
                   0 (do (Thread/sleep (* 30 1000))
                         (get-byte-array (assoc input
                                           :n-attempts (inc n-attempts))))
@@ -612,7 +621,7 @@
                             url
                             status))
           
-          (case (int n-attempts)
+          (case n-attempts
             0 (do (Thread/sleep (* 10 1000))
                   (get-byte-array (assoc input
                                     :n-attempts (inc n-attempts))))
