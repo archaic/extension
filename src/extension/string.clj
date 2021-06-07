@@ -31,6 +31,12 @@
     (when-let [s (re-find #"\d+" s)]
       (Integer/parseInt s))))
 
+(defn ->l
+  [s]
+  (when (string? s)
+    (when-let [s (re-find #"\d+" s)]
+      (Long/parseLong s))))
+
 (defn parse-vulgar-fraction
   [s]
   (let [[numerator denominator]

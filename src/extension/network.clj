@@ -232,16 +232,17 @@
              body
 
              (= 429 status)
-             (case n-attempts
-               0 (do (Thread/sleep (* 30 1000))
-                     (get-body url
-                               (inc n-attempts)))
+             (if (< n-attempts 10)
 
-               1 (do (Thread/sleep (* 120 1000))
-                     (get-body url
-                               (inc n-attempts)))
+               (do (Thread/sleep (* n-attempts 30 1000))
 
-               2
+                   (log/warnf "unable to pull %s, attempt: %d"
+                              url
+                              n-attempts)   
+
+                   (get-body url
+                             (inc n-attempts)))
+
                (log/errorf "unable to pull %s status: %d"
                            url
                            status))
