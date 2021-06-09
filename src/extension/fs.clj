@@ -81,6 +81,12 @@
   (when (file? path)
     (Files/delete path)))
 
+(defn rm-rf
+  [path]
+  (java.shell/sh "rm"
+                 "-rf"
+                 (str path)))
+
 (defn mv
   [from to]
   (Files/move (->path from)
