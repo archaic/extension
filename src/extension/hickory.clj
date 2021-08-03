@@ -36,7 +36,7 @@
   ([selector-fn tree]
    (select-one selector-fn
                tree
-               true)))
+               false)))
 
 (defn text-selector
   [loc]

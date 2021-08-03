@@ -3,6 +3,8 @@
         com.datomic/datomic-free {:mvn/version "0.9.5697"}
         com.taoensso/nippy {:mvn/version "3.1.1"}
         com.taoensso/timbre {:mvn/version "5.1.2"}
+        com.wsscode/pathom3 {:git/url "https://github.com/wilkerlucio/pathom3"
+                             :sha "acf3134aa52668d83cffd326c46fca1ef0120e99"}
         criterium/criterium {:mvn/version "0.4.6"}
         enlive/enlive {:mvn/version "1.1.6"}
         hickory/hickory {:mvn/version "0.7.1"}

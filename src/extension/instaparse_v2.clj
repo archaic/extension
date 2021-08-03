@@ -101,7 +101,8 @@
           parse-output))
 
 (defn create-parser
-  [{:keys [string syntax]}]
+  [{:keys [log? string syntax]
+    :or {log? true}}]
 
   (let [string
         (str string
@@ -115,18 +116,19 @@
 
       (let [text-1
             (-> (s/lower-case text)
-                (s/replace #"\s+" " ")
-                s/trim)
+               (s/replace #"\s+" " ")
+               s/trim)
 
             parsed-text
             (parser text-1)]
 
         (if (ip/failure? parsed-text)
 
-          (do (log/warnf "unable to process text: %s"
-                         text)
-              
-              (if/pprint-failure parsed-text))
+          (when log?
+            (log/warnf "unable to process text: %s"
+                       text)
+            
+            (if/pprint-failure parsed-text))
 
           (unroll-parse {}
                         parsed-text))))))

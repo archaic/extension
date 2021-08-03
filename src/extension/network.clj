@@ -15,30 +15,51 @@
            [org.apache.commons.io FileUtils]))
 
 (defn get
-  [{:keys [url]}]
+  ([url options]
 
-  (let [{:as response
-         :keys [trace-redirects]}
-        (try (cc/get url
-                     {:throw-exceptions false})
+   (let [{:as response
+          :keys [trace-redirects]}
+         (try (cc/get url
+                      (merge {:throw-exceptions false}
+                             options))
 
-             (catch Exception Ex
-               (log/errorf "unable to GET %s, %s"
-                           url
-                           (.getMessage Ex))))]
+              (catch Exception Ex
+                (log/errorf "unable to GET %s, %s"
+                            url
+                            (.getMessage Ex))))]
 
-    (when (seq trace-redirects)
-      (log/warnf "redirect sequence from %s, by %s"
-                 url
-                 (s/join ", "
-                         trace-redirects)))
+     (when (seq trace-redirects)
+       (log/warnf "redirect sequence from %s, by %s"
+                  url
+                  (s/join ", "
+                          trace-redirects)))
 
-    response))
+     response))
+
+  ([{:keys [url]}]
+
+   (let [{:as response
+          :keys [trace-redirects]}
+         (try (cc/get url
+                      {:throw-exceptions false})
+
+              (catch Exception Ex
+                (log/errorf "unable to GET %s, %s"
+                            url
+                            (.getMessage Ex))))]
+
+     (when (seq trace-redirects)
+       (log/warnf "redirect sequence from %s, by %s"
+                  url
+                  (s/join ", "
+                          trace-redirects)))
+
+     response)))
 
 (defn post
-  [uri options]
+  [url options]
 
-  (try (cc/post uri
+  (try (cc/post url
                 options)
 
        (catch Exception Ex
@@ -46,12 +67,12 @@
          (let [message
                (ex-message Ex)]
            
-           (log/errorf "Unable to post uri: %s, message:\n%s"
-                       uri
+           (log/errorf "Unable to post url: %s, message:\n%s"
+                       url
                        message)
 
-           (when-let [n-retries-0
-                      (:n-retries options)]
+           (if-let [n-retries-0
+                    (:n-retries options)]
 
              (let [n-retries
                    (int n-retries-0)]
@@ -60,7 +81,7 @@
 
                  (log/infof "retry %d for %s"
                             n-retries
-                            uri)
+                            url)
                  
                  (case n-retries
                    5 (Thread/sleep 1000)
@@ -70,9 +91,19 @@
                    1 (Thread/sleep 90000)
                    (Thread/sleep 1000))
 
-                 (post uri
+                 (post url
                        (assoc options
-                         :n-retries (dec n-retries))))))))))
+                         :n-retries (dec n-retries)))))
+
+             (when-let [[x & xs]
+                        (:retries options)]
+
+               (when (number? x)
+
+                 (Thread/sleep x)
+                 (post url
+                       (assoc options
+                         :retries xs)))))))))
 
 (defn get-byte-array
   "Return body of url as a byte array, or nil if unable"

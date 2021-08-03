@@ -1,13 +1,17 @@
 (ns extension.fs
-  (:require [clojure.java.io :as java.io]
-            [clojure.java.shell :as java.shell]
-            [clojure.string :as string]
-            [clojure.zip :as zip]
-            [taoensso.timbre :as log])
-  (:import [java.io FileInputStream]
-           [java.net URL URI]
-           [java.nio.file Files LinkOption Path Paths CopyOption]
-           [java.nio.file.attribute FileAttribute]))
+  (:require
+   [clj-time.core :as t]
+   [clj-time.coerce :as co]
+   [clojure.java.io :as java.io]
+   [clojure.java.shell :as java.shell]
+   [clojure.string :as string]
+   [clojure.zip :as zip]
+   [taoensso.timbre :as log])
+  (:import
+   (java.io FileInputStream)
+   (java.net URL URI)
+   (java.nio.file Files LinkOption Path Paths CopyOption)
+   (java.nio.file.attribute FileAttribute)))
 
 (extend Path
   java.io/IOFactory
@@ -204,3 +208,19 @@
                (when-not (string/blank? out)
                  (re-find #"(?i)gzip"
                           out))))))
+
+(defn timestamp
+  [path]
+
+  (let [[parent file-name]
+        ((juxt get-parent
+               get-file-name)
+         (->path path))
+
+        timestamped-file-name
+        (str (co/to-long (t/now))
+             "_"
+             file-name)]
+
+    (.resolve parent
+              timestamped-file-name)))
