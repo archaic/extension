@@ -1,7 +1,8 @@
 (ns extension.datomic
-  (:require [clojure.repl :as cr]
-            [datomic.api :as d]
-            [taoensso.timbre :as log]))
+  (:require
+   [clojure.repl :as cr]
+   [datomic.api :as d]
+   [taoensso.timbre :as log]))
 
 (defn transact!
   [conn tx-data]
