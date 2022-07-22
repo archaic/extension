@@ -47,7 +47,7 @@
                      (map (fn [k fmt]
                             (ansi/sgr (format fmt
                                               (get row k))
-                                      :blue))
+                                      :white))
                           ks
                           fmts)))]
        
