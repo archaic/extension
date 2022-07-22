@@ -1,8 +1,9 @@
 (ns extension.instaparse
-  (:require [clojure.string :as s]
-            [instaparse.core :as ip]
-            [instaparse.failure :as if]
-            [taoensso.timbre :as log]))
+  (:require
+   [clojure.string :as s]
+   [instaparse.core :as ip]
+   [instaparse.failure :as if]
+   [taoensso.timbre :as log]))
 
 (defn syntax->sting
   [syntax prefix]
@@ -68,8 +69,6 @@
 
           context
           parse-output))
-
-(def !x (atom nil))
 
 (defn create-parser
   [{:keys [string syntax]}]

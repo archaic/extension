@@ -97,7 +97,7 @@
 
               year
               (+ 2000
-                 sub-year)]
+                 (int sub-year))]
 
           {:day day
            :month month

@@ -11,33 +11,55 @@
             [net.cgrand.enlive-html :as nce]
             [taoensso.nippy :as tn]
             [taoensso.timbre :as log])
-  (:import [java.io ByteArrayInputStream]))
+  (:import [java.io ByteArrayInputStream File]
+           [org.apache.commons.io FileUtils]))
 
 (defn get
-  [{:keys [url]}]
+  ([url options]
 
-  (let [{:as response
-         :keys [trace-redirects]}
-        (try (cc/get url
-                     {:throw-exceptions false})
+   (let [{:as response
+          :keys [trace-redirects]}
+         (try (cc/get url
+                      (merge {:throw-exceptions false}
+                             options))
 
-             (catch Exception Ex
-               (log/errorf "unable to GET %s, %s"
-                           url
-                           (.getMessage Ex))))]
+              (catch Exception Ex
+                (log/errorf "unable to GET %s, %s"
+                            url
+                            (.getMessage Ex))))]
 
-    (when (seq trace-redirects)
-      (log/warnf "redirect sequence from %s, by %s"
-                 url
-                 (s/join ", "
-                         trace-redirects)))
+     (when (seq trace-redirects)
+       (log/warnf "redirect sequence from %s, by %s"
+                  url
+                  (s/join ", "
+                          trace-redirects)))
 
-    response))
+     response))
+
+  ([{:keys [url]}]
+
+   (let [{:as response
+          :keys [trace-redirects]}
+         (try (cc/get url
+                      {:throw-exceptions false})
+
+              (catch Exception Ex
+                (log/errorf "unable to GET %s, %s"
+                            url
+                            (.getMessage Ex))))]
+
+     (when (seq trace-redirects)
+       (log/warnf "redirect sequence from %s, by %s"
+                  url
+                  (s/join ", "
+                          trace-redirects)))
+
+     response)))
 
 (defn post
-  [uri options]
+  [url options]
 
-  (try (cc/post uri
+  (try (cc/post url
                 options)
 
        (catch Exception Ex
@@ -45,30 +67,43 @@
          (let [message
                (ex-message Ex)]
            
-           (log/errorf "Unable to post uri: %s, message:\n%s"
-                       uri
+           (log/errorf "Unable to post url: %s, message:\n%s"
+                       url
                        message)
 
-           (when-let [n-retries
-                      (:n-retries options)]
+           (if-let [n-retries-0
+                    (:n-retries options)]
 
-             (when (pos? n-retries)
-
-               (log/infof "retry %d for %s"
-                          n-retries
-                          uri)
+             (let [n-retries
+                   (int n-retries-0)]
                
-               (case n-retries
-                 5 (Thread/sleep 1000)
-                 4 (Thread/sleep 5000)
-                 3 (Thread/sleep 10000)
-                 2 (Thread/sleep 30000)
-                 1 (Thread/sleep 90000)
-                 (Thread/sleep 1000))
+               (when (pos? n-retries)
 
-               (post uri
-                     (assoc options
-                       :n-retries (dec n-retries)))))))))
+                 (log/infof "retry %d for %s"
+                            n-retries
+                            url)
+                 
+                 (case n-retries
+                   5 (Thread/sleep 1000)
+                   4 (Thread/sleep 5000)
+                   3 (Thread/sleep 10000)
+                   2 (Thread/sleep 30000)
+                   1 (Thread/sleep 90000)
+                   (Thread/sleep 1000))
+
+                 (post url
+                       (assoc options
+                         :n-retries (dec n-retries)))))
+
+             (when-let [[x & xs]
+                        (:retries options)]
+
+               (when (number? x)
+
+                 (Thread/sleep x)
+                 (post url
+                       (assoc options
+                         :retries xs)))))))))
 
 (defn get-byte-array
   "Return body of url as a byte array, or nil if unable"
@@ -76,7 +111,7 @@
    (get-byte-array url
                    0))
 
-  ([url n-attempts]
+  ([url ^long n-attempts]
 
    (let [request
          {:as :byte-array
@@ -168,7 +203,7 @@
    (get-body url
              0))
 
-  ([url n-attempts]
+  ([url ^long n-attempts]
 
    (let [request
          {:connection-timeout 60000
@@ -228,16 +263,17 @@
              body
 
              (= 429 status)
-             (case n-attempts
-               0 (do (Thread/sleep (* 30 1000))
-                     (get-body url
-                               (inc n-attempts)))
+             (if (< n-attempts 10)
 
-               1 (do (Thread/sleep (* 120 1000))
-                     (get-body url
-                               (inc n-attempts)))
+               (do (Thread/sleep (* n-attempts 30 1000))
 
-               2
+                   (log/warnf "unable to pull %s, attempt: %d"
+                              url
+                              n-attempts)   
+
+                   (get-body url
+                             (inc n-attempts)))
+
                (log/errorf "unable to pull %s status: %d"
                            url
                            status))
@@ -260,7 +296,7 @@
                              (.getMessage Ex)
                              url)))]
       
-      (.close bais)
+      (.close ^ByteArrayInputStream bais)
 
       nodes)))
 
@@ -285,7 +321,7 @@
                              (.getMessage Ex)
                              url)))]
       
-      (.close bais)
+      (.close ^ByteArrayInputStream bais)
 
       nodes)))
 
@@ -293,9 +329,14 @@
   [{:as input
     :keys [absolute-file-name
            directory
+           file-name
            relative-file-name]}]
 
-  (let [absolute-file-name
+  (let [relative-file-name
+        (or relative-file-name
+            file-name)
+        
+        absolute-file-name
         (or absolute-file-name
             (str directory
                  relative-file-name))]
@@ -310,6 +351,7 @@
     :keys [directory
            relative-file-name
            file-name
+           fresh?
            url
            valid?]
     :or {valid? (fn [tree]
@@ -326,41 +368,41 @@
     (when-not (fs/directory? directory)
       (fs/mkdirs directory))
 
-    (if (or (fs/file? absolute-file-name)
-            (fs/symlink? absolute-file-name))
+    (let [file-exists?
+          (or (fs/file? absolute-file-name)
+              (fs/symlink? absolute-file-name))]
 
-      (tn/thaw-from-file absolute-file-name)
+      (if (and file-exists?
+               (not fresh?))
+        (tn/thaw-from-file absolute-file-name)
 
-      (when-let [tree
-                 (html-tree url)]
+        (when-let [tree
+                   (html-tree url)]
 
-        (when (valid? tree)
-          
-          (let [timestamp
-                (co/to-long (t/now))
+          (when (valid? tree)
+            
+            (let [timestamp
+                  (co/to-long (t/now))
 
-                relative-file-name-0
-                (str timestamp
-                     "-"
-                     relative-file-name)
+                  relative-file-name-0
+                  (str timestamp
+                       "-"
+                       relative-file-name)
 
-                absolute-file-name-0
-                (str directory
-                     relative-file-name-0)]
+                  absolute-file-name-0
+                  (str directory
+                       relative-file-name-0)]
 
-            (log/infof "pulling %s"
-                       absolute-file-name)
+              (log/infof "pulling %s"
+                         absolute-file-name)
 
-            (when-not (fs/directory? directory)
-              (fs/mkdir directory))
+              (tn/freeze-to-file absolute-file-name-0
+                                 tree)
 
-            (tn/freeze-to-file absolute-file-name-0
-                               tree)
+              (fs/symlink absolute-file-name
+                          absolute-file-name-0)
 
-            (fs/symlink absolute-file-name
-                        absolute-file-name-0)
-
-            tree))))))
+              tree)))))))
 
 (defn http-get
   [{:as input
@@ -440,7 +482,10 @@
     :or {n-attempts 0
          warn-on-redirect? true}}]
 
-  (let [request
+  (let [n-attempts
+        (int n-attempts)
+
+        request
         {:as :byte-array
          :connection-timeout 90000
          :headers {"user-agent" (get-user-agent)}
@@ -501,3 +546,117 @@
         
         (log/errorf "unable to pull %s status: nil"
                     url)))))
+
+(defn get-cached-byte-array
+  "Return body of url as a byte array, or nil if unable"
+
+  [{:as input
+    :keys [directory
+           file-name
+           n-attempts
+           url
+           warn-on-redirect?]
+    :or {n-attempts 0
+         warn-on-redirect? true}}]
+
+  (let [n-attempts
+        (int n-attempts)
+
+        absolute-file-name
+        (str directory
+             file-name)]
+
+    (when-not (fs/directory? directory)
+      (fs/mkdirs directory))
+
+    (if (or (fs/file? absolute-file-name)
+            (fs/symlink? absolute-file-name))
+
+      (FileUtils/readFileToByteArray (File. absolute-file-name))
+
+      (let [request
+            {:as :byte-array
+             :connection-timeout 90000
+             :headers {"user-agent" (get-user-agent)}
+             :so-timeout 120000
+             :throw-exceptions false}
+
+            {:as response
+             :keys [body
+                    status
+                    trace-redirects]}
+            (try (cc/get url
+                         request)
+
+                 (catch Exception Ex
+
+                   (let [message
+                         (ex-message Ex)]
+
+                     (log/errorf "unable to GET %s, message: %s"
+                                 url
+                                 message))))]
+
+        (when (and warn-on-redirect?
+                   (seq trace-redirects))
+          (log/warnf "redirect sequence from %s"
+                     url)
+          (log/warn trace-redirects))
+
+        (if status
+
+          (cond (<= 200 status 299)
+
+                (let [bais
+                      (ByteArrayInputStream. body)]
+
+                  (let [timestamp
+                        (co/to-long (t/now))
+
+                        relative-file-name-0
+                        (str timestamp
+                             "-"
+                             file-name)
+
+                        absolute-file-name-0
+                        (str directory
+                             relative-file-name-0)]
+
+                    (log/infof "pulling %s"
+                               absolute-file-name)
+
+                    (FileUtils/copyInputStreamToFile bais
+                                                     (File. absolute-file-name-0))
+
+                    (fs/symlink absolute-file-name
+                                absolute-file-name-0)
+
+                    bais))
+
+                (= 429 status)
+                (case n-attempts
+                  0 (do (Thread/sleep (* 30 1000))
+                        (get-byte-array (assoc input
+                                          :n-attempts (inc n-attempts))))
+
+                  1 (do (Thread/sleep (* 120 1000))
+                        (get-byte-array (assoc input
+                                          :n-attempts (inc n-attempts))))
+
+                  2
+                  (log/errorf "unable to pull %s status: %d"
+                              url
+                              status))
+
+                :else
+                (log/errorf "unable to pull %s status: %d"
+                            url
+                            status))
+          
+          (case n-attempts
+            0 (do (Thread/sleep (* 10 1000))
+                  (get-byte-array (assoc input
+                                    :n-attempts (inc n-attempts))))
+            
+            (log/errorf "unable to pull %s status: nil"
+                        url)))))))

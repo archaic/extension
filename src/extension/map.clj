@@ -1,5 +1,4 @@
-(ns extension.map
-  (:require [clojure.set :as cs]))
+(ns extension.map)
 
 (defn keep-nonempty
   [m]
@@ -16,9 +15,22 @@
        (map vec)
        (into m)))
 
+(defn remove-nil-values
+  [m]
+  (into {}
+        (remove (fn [[k v]]
+                  (nil? v))
+                m)))
+
+(defn filter-keyword-keys
+  [m]
+  (into {}
+        (filter (fn [[k v]]
+                  (keyword? k))
+                m)))
+
 (defn namespace-keys
   [m ns]
-
   (reduce-kv (fn [m k v]
 
                (assoc m

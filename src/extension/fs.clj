@@ -1,25 +1,27 @@
 (ns extension.fs
-  (:require [clojure.java.io :as io]
-            [clojure.java.shell :as cjs]
-            [clojure.string :as s]
-            [clojure.zip :as zip]
-            [taoensso.timbre :as log])
-
-  (:import [java.io FileInputStream]
-           [java.net URL URI]
-           [java.nio.file Files LinkOption Path Paths CopyOption]
-           [java.nio.file.attribute FileAttribute]))
+  (:require
+   [clj-time.core :as t]
+   [clj-time.coerce :as co]
+   [clojure.java.io :as java.io]
+   [clojure.java.shell :as java.shell]
+   [clojure.string :as string]
+   [clojure.zip :as zip]
+   [taoensso.timbre :as log])
+  (:import
+   (java.io FileInputStream)
+   (java.net URL URI)
+   (java.nio.file Files LinkOption Path Paths CopyOption)
+   (java.nio.file.attribute FileAttribute)))
 
 (extend Path
-  io/IOFactory
-  (assoc io/default-streams-impl
+  java.io/IOFactory
+  (assoc java.io/default-streams-impl
     :make-input-stream
     (fn [^Path x opts]
-      (io/make-input-stream (FileInputStream. (.toString x))
-                            opts))))
+      (java.io/make-input-stream (FileInputStream. (.toString x))
+                                 opts))))
 
-(defn ->path
-  [x]
+(defn ->path ^Path [x]
   (cond (instance? Path x) x
         (and (string? x)
              (re-find #"(?i)^file:"
@@ -83,6 +85,12 @@
   (when (file? path)
     (Files/delete path)))
 
+(defn rm-rf
+  [path]
+  (java.shell/sh "rm"
+                 "-rf"
+                 (str path)))
+
 (defn mv
   [from to]
   (Files/move (->path from)
@@ -134,9 +142,9 @@
     :file.absolute/keys [path]}]
 
   (mv path
-      (s/replace path
-                 (re-pattern (str src "$"))
-                 dst)))
+      (string/replace path
+                      (re-pattern (str src "$"))
+                      dst)))
 
 (defn file-iteration
   "iterate over all files in a directory, calling f on path"
@@ -188,15 +196,31 @@
 
   (let [{:as reponse
          :keys [err exit out]}
-        (cjs/sh "file"
-                (str path))]
+        (java.shell/sh "file"
+                       (str path))]
 
-    (when-not (s/blank? err)
+    (when-not (string/blank? err)
       (log/warnf "error processing %s, %s"
                  (str path)
                  err))
 
-    (boolean (when (zero? exit)
-               (when-not (s/blank? out)
+    (boolean (when (zero? (int exit))
+               (when-not (string/blank? out)
                  (re-find #"(?i)gzip"
                           out))))))
+
+(defn timestamp
+  [path]
+
+  (let [[parent file-name]
+        ((juxt get-parent
+               get-file-name)
+         (->path path))
+
+        timestamped-file-name
+        (str (co/to-long (t/now))
+             "_"
+             file-name)]
+
+    (.resolve parent
+              timestamped-file-name)))
